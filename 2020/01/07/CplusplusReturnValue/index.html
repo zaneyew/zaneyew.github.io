@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="description" content="随缘更新" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    细谈 C++ 返回传值的三种方式：按值返回、按常量引用返回以及按引用返回 |  科普、拾趣、足球、外语
+  </title>
+  
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+<script src="/js/pace.min.js"></script>
+
+
+  
+
+  
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+</html>
+
+<body>
+  <div id="app">
+    <main class="content">
+      <section class="outer">
+  <article id="post-CplusplusReturnValue" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  细谈 C++ 返回传值的三种方式：按值返回、按常量引用返回以及按引用返回
+</h1>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/01/07/CplusplusReturnValue/" class="article-date">
+  <time datetime="2020-01-07T12:10:36.000Z" itemprop="datePublished">2020-01-07</time>
+</a>
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="细谈-C-返回传值的三种方式：按值返回、按常量引用返回以及按引用返回"><a href="#细谈-C-返回传值的三种方式：按值返回、按常量引用返回以及按引用返回" class="headerlink" title="细谈 C++ 返回传值的三种方式：按值返回、按常量引用返回以及按引用返回"></a>细谈 C++ 返回传值的三种方式：按值返回、按常量引用返回以及按引用返回</h1><h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>停滞了很久，最近又开始细细品味起《Data Structure And Algorithm Analysis In C++》这本书了。这本书的第一章即为非常好的 C++11 统领介绍的教材范文，可能对于 C++11 新手来说，作者这样短篇幅的介绍或许有些苍白晦涩，但是对于我这种有一定 C++ 开发经验并且有研读过 《C++ Primer 5th》的人来说，作者这几页简直就是让我对 C++11 的整体脉络有了更加宏观的认识。</p>
+<p>话不多说，在之前，我看了这本书的第 1.5.3 节后，总结了一篇博客：<br>细谈 C++ 传参的四种方式：按值传参、按左值引用传参、按常量引用传参以及按右值引用传参</p>
+<p>可以说，我这篇博客里面那种画出来的图（什么时候选择使用哪种传参方式）就是非常精炼的总结。</p>
+<p>C++ 除了四种传参方式，其实还有三种返回传值的方式。C++ 的代码为什么这么难以理解，从入参到出参，这都是有一些门门道道的。</p>
+<a id="more"></a>
+
+<p>同样的，这里，我拿出这本书的第 37 页的一块函数模板的代码，你能解释出来为什么这个 findMax 函数要使用按常量引用的方式返回传值吗：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Return the maximum item in array a.</span></span><br><span class="line"><span class="comment"> * Assumes a.size() &gt; 0.</span></span><br><span class="line"><span class="comment"> * Comparable objects must provide operator&lt; and operator=</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"> <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Comparable&gt;</span><br><span class="line"> <span class="function"><span class="keyword">const</span> Comparable &amp; <span class="title">findMax</span><span class="params">(<span class="keyword">const</span> <span class="built_in">vector</span>&lt;Comparable&gt; &amp; a)</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line"> 	<span class="keyword">int</span> maxIndex = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; a.<span class="built_in">size</span>(); ++i)</span><br><span class="line">		<span class="keyword">if</span> (a[maxIndex] &lt; a[i])</span><br><span class="line">			maxIndex = i;</span><br><span class="line">	<span class="keyword">return</span> a[maxIndex];</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里以这段代码开篇引言，后面会仔细介绍 C++ 的三种返回传值的方式，以及总结一下什么时候，我们该选择使用哪种返回传值的方式。</p>
+<p>ps: 本篇博客大量参考了《Data Structure And Algorithm Analysis In C++》书中的解释和代码。</p>
+<h2 id="一点碎碎念的讨论"><a href="#一点碎碎念的讨论" class="headerlink" title="一点碎碎念的讨论"></a>一点碎碎念的讨论</h2><p>让我们忘掉那么多复杂的概念，我们一起来仔细思考一下，C++ 返回传值的表现：被传递的值是否持续存在、传递过程中是否发生了拷贝、传递过程中是否会自动转化成移动语义（C++11 新增）等等。这些表现到底与哪些因素有关呢？</p>
+<p>通过仔细研读《Data Structure And Algorithm Analysis In C++》书中的阐述，我认为 C++ 返回传值的表现的不同，主要与两方面有关系：</p>
+<ol>
+<li>被返回的值<br>函数体内，被返回的值，它是左值还是右值，是临时变量（函数体内定义的）还是非临时变量（函数体外定义的），都会影响到返回传值的表现。</li>
+</ol>
+<p>这里，我简单举个例子：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">LargeType <span class="title">randomItem1</span> <span class="params">(<span class="keyword">const</span> <span class="built_in">vector</span>&lt;LargeType&gt; &amp; arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> arr[randomInt(<span class="number">0</span>, arr.<span class="built_in">size</span>() - <span class="number">1</span>)];</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">vector</span>&lt;LargeType&gt; vec;</span><br><span class="line"><span class="comment">// copy</span></span><br><span class="line">LargeType item1 = randomItem1(vec);</span><br></pre></td></tr></table></figure>
+
+<p>这里，vec 以按常量引用的方式传入 randomItem1 函数，它是一个非临时变量，并且是一个左值返回。那么这次返回传值的表现是什么呢，那就是在返回后，arr 数组实际上持续存在，并且因为 arr 实际上是一个函数外定义的变量，因此在函数内部传值返回的时候，不可以使用 C++11 新增的自动右值转化变成移动语义以避免复制拷贝开销。</p>
+<p>这是什么意思呢，我们再来看一段代码就好了：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; partialSum(<span class="keyword">const</span> <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; &amp; arr)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; result(arr.<span class="built_in">size</span>());</span><br><span class="line">	result[<span class="number">0</span>] = arr[<span class="number">0</span>];</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; arr.<span class="built_in">size</span>(); ++i)</span><br><span class="line">		result[i]  = result[i - <span class="number">1</span>] + arr[i];</span><br><span class="line">	<span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; vec;</span><br><span class="line"><span class="comment">// copy in old C++, move in C++11</span></span><br><span class="line"><span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; sums = parialSum(vec);</span><br></pre></td></tr></table></figure>
+
+<p>这段代码乍一看，仿佛并没有什么不同，也是普通返回类型，也是按常量引用传值。可是这个调用的返回传值的表现就大大不同了，传统 C++ 确实还是会按值返回，发生拷贝，但是 C++11 中就会自动转化为移动语义，使用移动替换拷贝节省开销。</p>
+<p>为什么呢？这就是因为返回的 result 实际上是一个临时变量，同右值在这里有异曲同工之妙的地方在于，他们在离开了函数之后都会自动的消失，也就是说，我们将其值移动到返回接受这个值的地方完全没有问题，并且还能节省资源开销，何乐而不为呢？而 C++11 确实也是这么做的。</p>
+<p>总而言之，返回传值的表现，与被返回的值有关系。其是临时变量或者右值，就有拷贝转移动的可能（返回类型要是普通类型），其是非临时变量，则有返回后持续存在的特性。</p>
+<ol start="2">
+<li>返回类型</li>
+</ol>
+<p>函数定义的返回类型会影响返回传值的表现，这个也不难理解。</p>
+<p>一般来说，返回类型如果定义为：</p>
+<p>按值返回，则要产生拷贝；</p>
+<p>按常量引用返回，则如果调用方使用常量引用接受返回值则不产生拷贝；</p>
+<p>按引用返回，则既不产生拷贝，并且还能对其值进行修改（这种情况虽然少见，但是也有存在）。</p>
+<p>这里，我在介绍 C++ 的三种返回传值之前先进行了一些讨论，希望能够对这三种返回传值类型有一些初步的了解。</p>
+<p>接下来，我们来结合着例子来详细的探讨下这三种返回传值的方式。</p>
+<h2 id="这个标题才是正餐"><a href="#这个标题才是正餐" class="headerlink" title="这个标题才是正餐"></a>这个标题才是正餐</h2><p>有了前面的一些准备知识，我们来细细的探讨下 C++ 返回传值的三种方式。</p>
+<ol>
+<li>按值返回</li>
+</ol>
+<p>按值返回，可能是初学者最熟悉的返回方式了。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">LargeType <span class="title">randomItem1</span> <span class="params">(<span class="keyword">const</span> <span class="built_in">vector</span>&lt;LargeType&gt; &amp; arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> arr[randomInt(<span class="number">0</span>, arr.<span class="built_in">size</span>() - <span class="number">1</span>)];</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">vector</span>&lt;LargeType&gt; vec;</span><br><span class="line">LargeType item1 = randomItem1 (vec);</span><br></pre></td></tr></table></figure>
+
+<p>我拿出来了同样的例子，我们声明了 randomItem1 的返回类型为 largeType，并未加上 &amp; 或者 const 这就是简单的按值返回。我们将 vec 这个 vector 数组按常量引用传入 randomItem1 函数中去，目的是让 vec 在函数内不至于被改变，并且还能避免传参拷贝带来的资源消耗。</p>
+<p>在带出参数的时候，我们发现，带出来的 arr[randomInt(), arr.size() - 1] 其实上是一个非临时变量的左值，在返回传值的时候，需要拷贝给接受该值的 item1 变量。</p>
+<p>说的很复杂，其实很简单，那就是这里发生了拷贝开销。</p>
+<p>前面也有提到过，在 C++11 一些情况下，拷贝可能会被自动转化为移动。那么这里可以吗？</p>
+<blockquote>
+<p>答案是不行的。</p>
+</blockquote>
+<p>能被转化为移动语义的，一般都带有临时的语义，要么是被返回的值是临时变量，要么就是一个临时的右值，否则不能转化为移动语义。</p>
+<p>总的来说，那就是按值返回一般带有拷贝的意味，只是 C++11 会进行一些优化，会将临时的值的返回自动转化为移动来节省拷贝开销。</p>
+<ol start="2">
+<li>按常量引用返回</li>
+</ol>
+<p>既然按值返回会出现拷贝的开销，那么为了解决这个问题，加上一个引用不就好了吗。因此，按（常量）引用返回的方式就应运而生。</p>
+<p>顾名思义，常量，意味着不能对返回值进行修改，引用，则意味着避免拷贝开销。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">const</span> LargeType &amp; <span class="title">randomItem2</span><span class="params">(<span class="keyword">const</span> <span class="built_in">vector</span>&lt;LargeType&gt; &amp; arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> arr[randomInt(<span class="number">0</span>, arr.<span class="built_in">size</span>() - <span class="number">1</span>)];</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">vector</span>&lt;LargeType&gt; vec;</span><br><span class="line"><span class="comment">// copy</span></span><br><span class="line">LargeType item1 = randomItem2(vec);</span><br><span class="line"><span class="comment">// no copy</span></span><br><span class="line"><span class="keyword">const</span> LargeType &amp; item2 = randomItem2(vec);</span><br></pre></td></tr></table></figure>
+
+<p>这里值得注意的是，按常量引用返回的调用，需要同样以常量引用去接受它，否则常量引用向引用类型的转换（const 转非 const）是需要拷贝转换的。</p>
+<p>另外，可能你已经注意到了，那么按引用返回传值呢？不就可以对返回值进行修改了吗？</p>
+<p>确实是这样，但是这种返回传值的方式比较少见，多见的还是常量引用传值。</p>
+<ol start="3">
+<li>按引用返回</li>
+</ol>
+<p>按引用返回的使用场景确实比较少，多见于调用者需要对于返回对象的内部的数据进行修改。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Object&gt;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">martix</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	matrix(<span class="built_in">vector</span>&lt;<span class="built_in">vector</span>&lt;Object&gt;&gt; v) : <span class="built_in">array</span>&#123;v&#125;</span><br><span class="line">		&#123;&#125;</span><br><span class="line">	<span class="keyword">const</span> <span class="built_in">vector</span>&lt;Object&gt; &amp; <span class="keyword">operator</span>[](<span class="keyword">int</span> row) <span class="keyword">const</span></span><br><span class="line">		&#123; <span class="keyword">return</span> <span class="built_in">array</span>[row]; &#125;</span><br><span class="line">	<span class="built_in">vector</span>&lt;Object&gt; &amp; <span class="keyword">operator</span>[](<span class="keyword">int</span> row)</span><br><span class="line">		&#123; <span class="keyword">return</span> <span class="built_in">array</span>[row]; &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">vector</span>&lt;<span class="built_in">vector</span>&lt;Object&gt;&gt; <span class="built_in">array</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码中，定义了一个二维数组 matrix 类，其元素类型为 Object。同时定义了按常量引用返回的 operator= 操作符和按常量引用返回的 operator= 操作符。这样是为了方便取值的只读语义和修改值的修改语义（accessor or mutator）。</p>
+<p>正因为我们这么定义了，所以我们就可以写出下列的代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">copy</span><span class="params">(<span class="keyword">const</span> matrix&lt;<span class="keyword">int</span>&gt; &amp; from, matrix&lt;<span class="keyword">int</span>&gt; &amp; to)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>, i &lt; to.numrows(); ++i)</span><br><span class="line">		to[i] = from[i];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>乍一看这个函数的定义非常好，from 是被拷贝的值以按常量引用传入，to 是需要修改的值以引用传入。为了使得这个 to[i] = from[i] 等式编译通过，我们必须定义两个版本的 operator= 操作符。</p>
+<p>左侧的 to[i] 就是按引用返回的 operator 操作符，右侧的 from[i] 则是按照常量引用返回的 operator 操作符。</p>
+<p>这样达到了语义上的统一。</p>
+<h2 id="实际开发中如何选择"><a href="#实际开发中如何选择" class="headerlink" title="实际开发中如何选择"></a>实际开发中如何选择</h2><p>那么详细探讨了这三种返回传值的方式，我们在开发中该如何选择呢？</p>
+<p>这里我还是画了一个图来阐述：</p>
+<p>注：或许会有人问，按值返回有没有常量的概念，答案是当然没有。因为按值返回返回的是值的拷贝，你加个常量概念也无法达到对原值的 const 约束。也就是说，按值返回绝对是没有 const 修饰的，因为毫无意义：）</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>C++ 的代码很难看懂，也许就在这些方面，一方面入参的四种方式，一方面出值的三种方式。相互组合，就会让人觉得晦涩难懂。<br>其实好好深入到里面弄清楚其里面的含义，也就比较好理解了。</p>
+<h2 id="转载自"><a href="#转载自" class="headerlink" title="转载自"></a>转载自</h2><blockquote>
+<p><a href="https://blog.csdn.net/u012814856/article/details/84099328" target="_blank" rel="noopener">https://blog.csdn.net/u012814856/article/details/84099328</a></p>
+</blockquote>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://zaneyew.github.io/2020/01/07/CplusplusReturnValue/" data-id="ck53um3le0001zwxc878oac0x"
+        class="article-share-link">分享</a>
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/c/" rel="tag">c++</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%BF%94%E5%9B%9E%E5%80%BC/" rel="tag">返回值</a></li></ul>
+
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+    
+      <a href="/2020/01/07/CplusplusParameter/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">细谈 C++ 传参的四种方式：按值传参、按左值引用传参、按常量引用传参以及按右值引用传参</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul class="list-inline">
+      <li>
+        &copy;
+        1-2020
+        科普、拾趣、足球、外语
+      </li>
+      <li>
+        
+      </li>
+    </ul>
+    <ul class="list-inline">
+      <li>
+        
+      </li>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+    <div class="to_top">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+      </div>
+    </main>
+    
+    <aside class="sidebar">
+      
+        <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="科普、拾趣、足球、外语"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">目录</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+      </aside>
+      <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+      
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/jquery.justifiedGallery.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+  
+<script src="/js/tocbot.min.js"></script>
+
+  <script>
+    // Tocbot_v4.7.0  http://tscanlin.github.io/tocbot/
+    tocbot.init({
+      tocSelector: '.tocbot',
+      contentSelector: '.article-entry',
+      headingSelector: 'h1, h2, h3, h4, h5, h6',
+      hasInnerContainers: true,
+      scrollSmooth: true,
+      positionFixedSelector: '.tocbot',
+      positionFixedClass: 'is-position-fixed',
+      fixedSidebarOffset: 'auto',
+    });
+  </script>
+
+
+<script>
+  var ayerConfig = {
+    mathjax: false
+  }
+</script>
+
+
+<script src="/js/ayer.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+
+
+
+<script type="text/javascript" src="https://js.users.51.la/20544303.js"></script>
+  
+  
+  </div>
+</body>
+
+</html>
